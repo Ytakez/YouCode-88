@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,8 +21,18 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Set up Android SDK
+        run: |
+          set -x
+          if [ ! -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            curl -sSLo /tmp/cmdtools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            unzip -q /tmp/cmdtools.zip -d /tmp/cmdt
+            mkdir -p "$ANDROID_HOME/cmdline-tools"
+            mv /tmp/cmdt/cmdline-tools "$ANDROID_HOME/cmdline-tools/latest"
+          fi
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -47,3 +60,11 @@ jobs:
           name: YouCode-APK
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 14
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: YouCode build ${{ github.run_number }}
+          files: app/build/outputs/apk/debug/app-debug.apk
+          fail_on_unmatched_files: true

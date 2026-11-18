@@ -1,0 +1,12 @@
+diff --git a/packages/cli/script/build.ts b/packages/cli/script/build.ts
+--- a/packages/cli/script/build.ts
++++ b/packages/cli/script/build.ts
+@@ -231,6 +231,8 @@ async function verifyArtifact
+ }
+ 
+ async function compileExecutable(item: (typeof allTargets)[number]) {
++  // YouCode: use the Bun runtime built for Android (bionic libc) instead of the stock glibc one.
++  if (process.env.YOUCODE_BUN_EXECUTABLE) return process.env.YOUCODE_BUN_EXECUTABLE
+   const release = process.env.BUN_COMPILE_RELEASE
+   if (!release) return
+ 
